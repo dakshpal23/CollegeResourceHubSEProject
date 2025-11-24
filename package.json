@@ -1,0 +1,27 @@
+{
+  "name": "college-resource-hub",
+  "version": "1.0.0",
+  "description": "A MERN stack platform for students to share academic resources",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm start\"",
+    "start": "cd backend && npm start",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "mern",
+    "react",
+    "nodejs",
+    "mongodb",
+    "express",
+    "education",
+    "resources",
+    "college"
+  ],
+  "author": "College Resource Hub Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
