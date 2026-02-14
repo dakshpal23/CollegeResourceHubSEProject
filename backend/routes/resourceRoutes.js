@@ -9,9 +9,10 @@ import {
   getResourceById,
   getMyUploads,
   getStats,
+  getAllResources
 } from '../controllers/resourceController.js';
-import { protect, admin, student } from '../middleware/auth.js';
-import upload from '../middleware/upload.js';
+import { protect, admin, student, branchAdmin } from '../middleware/auth.js';
+import { uploadSingle } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -19,16 +20,16 @@ const router = express.Router();
 router.get('/approved', getApprovedResources);
 router.get('/:id', getResourceById);
 
-// Protected routes - Student only
-router.post('/upload', protect, student, upload.single('file'), uploadResource);
-router.get('/my/uploads', protect, student, getMyUploads);
+// User routes (students and admins can upload)
+router.post('/upload', protect, uploadSingle('file'), uploadResource);
+router.get('/my/uploads', protect, getMyUploads);
 
-// Protected routes - Admin only
-router.post('/admin/upload', protect, admin, upload.single('file'), uploadResource);
-router.get('/admin/pending', protect, admin, getPendingResources);
-router.get('/admin/stats', protect, admin, getStats);
-router.put('/approve/:id', protect, admin, approveResource);
-router.put('/reject/:id', protect, admin, rejectResource);
-router.delete('/:id', protect, admin, deleteResource);
+// Admin only routes
+router.get('/admin/pending', protect, branchAdmin, getPendingResources);
+router.get('/admin/stats', protect, branchAdmin, getStats);
+router.get('/admin/all', protect, branchAdmin, getAllResources);
+router.put('/approve/:id', protect, branchAdmin, approveResource);
+router.put('/reject/:id', protect, branchAdmin, rejectResource);
+router.delete('/:id', protect, branchAdmin, deleteResource);
 
 export default router;

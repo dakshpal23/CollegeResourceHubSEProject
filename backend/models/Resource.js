@@ -1,40 +1,36 @@
 import mongoose from 'mongoose';
 
-/**
- * Resource Schema for storing uploaded files/notes
- * Includes approval workflow and file metadata
- */
 const resourceSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Title is required'],
+    required: true,
     trim: true,
-    maxlength: [100, 'Title cannot exceed 100 characters']
+    maxlength: 100
   },
   description: {
     type: String,
-    required: [true, 'Description is required'],
+    required: true,
     trim: true,
-    maxlength: [500, 'Description cannot exceed 500 characters']
+    maxlength: 500
   },
   branch: {
     type: String,
-    required: [true, 'Branch is required'],
+    required: true,
     enum: ['CSE', 'ECE', 'ME', 'EE', 'CE', 'IT', 'Other']
   },
   subject: {
     type: String,
-    required: [true, 'Subject is required'],
+    required: true,
     trim: true,
-    maxlength: [50, 'Subject cannot exceed 50 characters']
+    maxlength: 50
   },
   fileUrl: {
     type: String,
-    required: [true, 'File URL is required']
+    required: true
   },
   fileType: {
     type: String,
-    required: [true, 'File type is required'],
+    required: true,
     enum: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png']
   },
   uploadedBy: {
@@ -50,7 +46,7 @@ const resourceSchema = new mongoose.Schema({
   adminRemark: {
     type: String,
     trim: true,
-    maxlength: [200, 'Admin remark cannot exceed 200 characters']
+    maxlength: 200
   },
   downloadCount: {
     type: Number,
@@ -60,9 +56,6 @@ const resourceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-/**
- * Index for better search performance
- */
 resourceSchema.index({ title: 'text', description: 'text', subject: 'text' });
 resourceSchema.index({ branch: 1, status: 1 });
 resourceSchema.index({ status: 1, createdAt: -1 });

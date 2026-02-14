@@ -1,7 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
@@ -57,68 +57,52 @@ api.interceptors.response.use(
   }
 );
 
-/**
- * Resource API functions
- */
+// Resource API functions
 export const resourceAPI = {
-  // Get approved resources with filters
   getApproved: (params = {}) => api.get('/resource/approved', { params }),
-  
-  // Get single resource
   getById: (id) => api.get(`/resource/${id}`),
-  
-  // Download resource
-  download: (id) => api.get(`/resource/download/${id}`),
-  
-  // Upload new resource
   upload: (formData) => api.post('/resource/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  
-  // Get user's uploads
   getMyUploads: (params = {}) => api.get('/resource/my/uploads', { params }),
   
   // Admin functions
-  adminUpload: (formData) => api.post('/resource/admin/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getPending: (params = {}) => api.get('/resource/admin/pending', { params }),
+  getPending: async (params = {}) => {
+    try {
+      console.log('API: Requesting pending resources...');
+      const response = await api.get('/resource/admin/pending', { params });
+      console.log('API: Pending resources response:', response.data);
+      return response;
+    } catch (error) {
+      console.error('API: Error getting pending resources:', error.response?.data || error.message);
+      throw error;
+    }
+  },
   approve: (id, remark = '') => api.put(`/resource/approve/${id}`, { remark }),
   reject: (id, remark) => api.put(`/resource/reject/${id}`, { remark }),
   delete: (id) => api.delete(`/resource/${id}`),
-  getStats: () => api.get('/resource/admin/stats'),
+  getStats: () => api.get('/resource/admin/stats')
 };
 
-/**
- * Announcement API functions
- */
+// Announcement API functions
 export const announcementAPI = {
   getAll: () => api.get('/announcements'),
-  create: (title, content) => api.post('/announcements', { title, content }),
-  createWithFile: (formData) => api.post('/announcements/with-file', formData, {
+  create: (formData) => api.post('/announcements', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  delete: (id) => api.delete(`/announcements/${id}`),
+  delete: (id) => api.delete(`/announcements/${id}`)
 };
 
-/**
- * Auth API functions
- */
+// Auth API functions
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
-  register: (name, email, password) => api.post('/auth/register', { name, email, password }),
-  forgotPassword: (email) => api.post('/auth/forgot', { email }),
-  resetPassword: (token, password) => api.post(`/auth/reset/${token}`, { password }),
-  refreshToken: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
+  register: (name, email, password) => api.post('/auth/register', { name, email, password })
 };
 
-/**
- * Helper function to handle API errors
- */
+// Helper function to handle API errors
 export const handleApiError = (error) => {
   const message = error.response?.data?.message || 'Something went wrong';
   toast.error(message);
-  console.error('API Error:', error);
   return message;
 };
 

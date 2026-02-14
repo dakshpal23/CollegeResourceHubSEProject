@@ -36,13 +36,36 @@ const protect = async (req, res, next) => {
 };
 
 /**
- * Middleware to check if user is admin
+ * Middleware to check if user is admin (legacy)
  */
 const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  console.log('Admin middleware - User:', req.user?.email, 'Role:', req.user?.role);
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'branch_admin' || req.user.role === 'super_admin')) {
     next();
   } else {
     res.status(403).json({ message: 'Access denied. Admin role required.' });
+  }
+};
+
+/**
+ * Middleware to check if user is branch admin
+ */
+const branchAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'branch_admin' || req.user.role === 'super_admin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Branch admin role required.' });
+  }
+};
+
+/**
+ * Middleware to check if user is super admin
+ */
+const superAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'super_admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Super admin role required.' });
   }
 };
 
@@ -57,4 +80,4 @@ const student = (req, res, next) => {
   }
 };
 
-export { protect, admin, student };
+export { protect, admin, student, branchAdmin, superAdmin };

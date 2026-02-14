@@ -1,228 +1,139 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { resourceAPI, announcementAPI, handleApiError } from '../services/api';
-import { 
-  FiUsers, 
-  FiFileText, 
-  FiClock, 
-  FiCheck, 
-  FiX, 
-  FiEye,
-  FiDownload,
-  FiCalendar,
-  FiUser,
-  FiUpload,
-  FiMegaphone
-} from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-/**
- * Admin Dashboard for managing resources and viewing stats
- */
 const AdminDashboard = () => {
   const [stats, setStats] = useState({});
   const [pendingResources, setPendingResources] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState({});
-  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
-  const [announcementData, setAnnouncementData] = useState({ title: '', content: '', file: null });
-  const [uploadData, setUploadData] = useState({ title: '', description: '', branch: '', file: null });
+  const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
 
-  /**
-   * Fetch dashboard data
-   */
-  const fetchDashboardData = async () => {
+  // Announcement form state
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    content: '',
+    file: null
+  });
+
+  // Resource upload form state
+  const [resourceForm, setResourceForm] = useState({
+    title: '',
+    description: '',
+    branch: 'CSE',
+    subject: '',
+    file: null
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
     try {
       setLoading(true);
-      const [statsResponse, pendingResponse, announcementsResponse] = await Promise.all([
+      
+      // Load pending resources first
+      console.log('Loading pending resources...');
+      const pendingRes = await resourceAPI.getPending();
+      console.log('Pending resources response:', pendingRes.data);
+      setPendingResources(pendingRes.data.resources || []);
+      
+      // Load other data
+      const [statsRes, announcementsRes] = await Promise.all([
         resourceAPI.getStats(),
-        resourceAPI.getPending({ limit: 10 }),
         announcementAPI.getAll()
       ]);
       
-      setStats(statsResponse.data.stats);
-      setPendingResources(pendingResponse.data.resources);
-      setAnnouncements(announcementsResponse.data.announcements);
+      setStats(statsRes.data.stats || {});
+      setAnnouncements(announcementsRes.data.announcements || []);
+      
     } catch (error) {
+      console.error('Error loading admin data:', error);
       handleApiError(error);
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Handle announcement creation
-   */
-  const handleCreateAnnouncement = async (e) => {
-    e.preventDefault();
+  const handleResourceAction = async (id, action, remark = '') => {
     try {
-      if (announcementData.file) {
-        const formData = new FormData();
-        formData.append('title', announcementData.title);
-        formData.append('content', announcementData.content);
-        formData.append('file', announcementData.file);
-        await announcementAPI.createWithFile(formData);
-      } else {
-        await announcementAPI.create(announcementData.title, announcementData.content);
+      if (action === 'approve') {
+        await resourceAPI.approve(id, remark);
+        toast.success('Resource approved successfully');
+      } else if (action === 'reject') {
+        await resourceAPI.reject(id, remark);
+        toast.success('Resource rejected successfully');
+      } else if (action === 'delete') {
+        await resourceAPI.delete(id);
+        toast.success('Resource deleted successfully');
       }
-      toast.success('Announcement created successfully!');
-      setShowAnnouncementForm(false);
-      setAnnouncementData({ title: '', content: '', file: null });
-      fetchDashboardData();
+      loadData();
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  /**
-   * Handle admin resource upload
-   */
-  const handleAdminUpload = async (e) => {
+  const handleAnnouncementSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate: must have either content or file
+    if (!announcementForm.title || (!announcementForm.content && !announcementForm.file)) {
+      toast.error('Title and either content or file is required');
+      return;
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append('title', announcementForm.title);
+      formData.append('content', announcementForm.content || '');
+      if (announcementForm.file) {
+        formData.append('file', announcementForm.file);
+      }
+
+      await announcementAPI.create(formData);
+      toast.success('Announcement created successfully');
+      setAnnouncementForm({ title: '', content: '', file: null });
+      loadData();
+    } catch (error) {
+      handleApiError(error);
+    }
+  };
+
+  const handleResourceUpload = async (e) => {
     e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append('title', uploadData.title);
-      formData.append('description', uploadData.description);
-      formData.append('branch', uploadData.branch);
-      formData.append('file', uploadData.file);
+      formData.append('title', resourceForm.title);
+      formData.append('description', resourceForm.description);
+      formData.append('branch', resourceForm.branch);
+      formData.append('subject', resourceForm.subject);
+      formData.append('file', resourceForm.file);
 
-      await resourceAPI.adminUpload(formData);
-      toast.success('Resource uploaded successfully!');
-      setShowUploadForm(false);
-      setUploadData({ title: '', description: '', branch: '',  file: null });
-      fetchDashboardData();
+      await resourceAPI.upload(formData);
+      toast.success('Resource uploaded and approved successfully');
+      setResourceForm({ title: '', description: '', branch: 'CSE', subject: '', file: null });
+      loadData();
     } catch (error) {
       handleApiError(error);
     }
   };
 
-  /**
-   * Delete announcement
-   */
-  const handleDeleteAnnouncement = async (id) => {
+  const deleteAnnouncement = async (id) => {
     try {
       await announcementAPI.delete(id);
-      toast.success('Announcement deleted!');
-      fetchDashboardData();
+      toast.success('Announcement deleted successfully');
+      loadData();
     } catch (error) {
       handleApiError(error);
-    }
-  };
-
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    fetchDashboardData();
-    
-    // Auto-open modals based on URL params
-    const action = searchParams.get('action');
-    if (action === 'upload') {
-      setShowUploadForm(true);
-    } else if (action === 'announcement') {
-      setShowAnnouncementForm(true);
-    }
-  }, [searchParams]);
-
-  /**
-   * Handle resource approval
-   */
-  const handleApprove = async (resourceId, remark = '') => {
-    try {
-      setActionLoading(prev => ({ ...prev, [resourceId]: 'approving' }));
-      await resourceAPI.approve(resourceId, remark);
-      
-      // Update local state
-      setPendingResources(prev => 
-        prev.filter(resource => resource._id !== resourceId)
-      );
-      
-      toast.success('Resource approved successfully!');
-      
-      // Refresh stats
-      fetchDashboardData();
-    } catch (error) {
-      handleApiError(error);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [resourceId]: null }));
-    }
-  };
-
-  /**
-   * Handle resource rejection
-   */
-  const handleReject = async (resourceId, remark) => {
-    if (!remark.trim()) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-
-    try {
-      setActionLoading(prev => ({ ...prev, [resourceId]: 'rejecting' }));
-      await resourceAPI.reject(resourceId, remark);
-      
-      // Update local state
-      setPendingResources(prev => 
-        prev.filter(resource => resource._id !== resourceId)
-      );
-      
-      toast.success('Resource rejected successfully!');
-      
-      // Refresh stats
-      fetchDashboardData();
-    } catch (error) {
-      handleApiError(error);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [resourceId]: null }));
-    }
-  };
-
-  /**
-   * Format date
-   */
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  /**
-   * Get file type icon
-   */
-  const getFileIcon = (fileType) => {
-    const iconClass = "w-5 h-5";
-    switch (fileType?.toLowerCase()) {
-      case 'pdf':
-        return <FiFileText className={`${iconClass} text-red-500`} />;
-      case 'doc':
-      case 'docx':
-        return <FiFileText className={`${iconClass} text-blue-500`} />;
-      case 'ppt':
-      case 'pptx':
-        return <FiFileText className={`${iconClass} text-orange-500`} />;
-      default:
-        return <FiFileText className={`${iconClass} text-gray-500`} />;
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg p-6 h-24"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -230,284 +141,309 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-              <p className="text-gray-600">
-                Manage resources and monitor platform activity
-              </p>
-            </div>
-            <div className="flex space-x-3">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setShowUploadForm(!showUploadForm)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              📤 Upload Resource
+            </button>
+            <button
+              onClick={() => setShowAnnouncementForm(!showAnnouncementForm)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+            >
+              📢 Create Announcement
+            </button>
+          </div>
+        </div>
+
+        {/* Statistics - Always Visible */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Total Resources</h3>
+            <p className="text-3xl font-bold text-blue-600">{stats.totalResources || 0}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Pending Approval</h3>
+            <p className="text-3xl font-bold text-yellow-600">{stats.pendingResources || 0}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Total Students</h3>
+            <p className="text-3xl font-bold text-green-600">{stats.totalUsers || 0}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
+            <p className="text-3xl font-bold text-purple-600">{announcements.length}</p>
+          </div>
+        </div>
+
+        {/* Upload Resource Form */}
+        {showUploadForm && (
+          <div className="bg-white shadow rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Upload Resource (Auto-Approved)</h2>
               <button
-                onClick={() => setShowAnnouncementForm(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                onClick={() => setShowUploadForm(false)}
+                className="text-gray-400 hover:text-gray-600"
               >
-                New Announcement
+                ✕
               </button>
+            </div>
+            <form onSubmit={handleResourceUpload} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={resourceForm.title}
+                  onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  required
+                  value={resourceForm.description}
+                  onChange={(e) => setResourceForm({ ...resourceForm, description: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows="3"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Branch</label>
+                  <select
+                    value={resourceForm.branch}
+                    onChange={(e) => setResourceForm({ ...resourceForm, branch: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {['CSE', 'ECE', 'ME', 'EE', 'CE', 'IT', 'Other'].map(branch => (
+                      <option key={branch} value={branch}>{branch}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Subject</label>
+                  <input
+                    type="text"
+                    required
+                    value={resourceForm.subject}
+                    onChange={(e) => setResourceForm({ ...resourceForm, subject: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">File</label>
+                <input
+                  type="file"
+                  required
+                  onChange={(e) => setResourceForm({ ...resourceForm, file: e.target.files[0] })}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
               <button
-                onClick={() => setShowUploadForm(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 Upload Resource
               </button>
-            </div>
+            </form>
           </div>
-        </div>
+        )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FiFileText className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Resources</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalResources || 0}</p>
-              </div>
+        {/* Announcement Form */}
+        {showAnnouncementForm && (
+          <div className="bg-white shadow rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Create Announcement</h2>
+              <button
+                onClick={() => setShowAnnouncementForm(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <FiClock className="w-6 h-6 text-yellow-600" />
+            <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  required
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Review</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pendingResources || 0}</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Content (Optional)</label>
+                <textarea
+                  value={announcementForm.content}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows="4"
+                  placeholder="Enter announcement text (optional if uploading file)"
+                />
               </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <FiUsers className="w-6 h-6 text-green-600" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700">File Attachment (Optional)</label>
+                <input
+                  type="file"
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, file: e.target.files[0] })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
+                />
+                <p className="mt-1 text-xs text-gray-500">Upload documents, images, or other files</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Students</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers || 0}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <FiDownload className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Downloads</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats.popularResources?.reduce((sum, r) => sum + r.downloadCount, 0) || 0}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> You can create announcements with just text, just a file, or both. At least one is required.
                 </p>
               </div>
-            </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Create Announcement
+              </button>
+            </form>
           </div>
-        </div>
+        )}
 
         {/* Pending Resources */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
-              Pending Resources ({pendingResources.length})
-            </h3>
-          </div>
-          
-          {pendingResources.length === 0 ? (
-            <div className="p-12 text-center">
-              <FiCheck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-gray-900 mb-2">All caught up!</h4>
-              <p className="text-gray-600">No resources pending review at the moment.</p>
+        <div className="bg-white shadow rounded-lg mb-8">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900">Pending Resources ({pendingResources.length})</h2>
+              <button
+                onClick={loadData}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
+              >
+                Refresh
+              </button>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {pendingResources.map((resource) => (
-                <div key={resource._id} className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        {getFileIcon(resource.fileType)}
-                        <h4 className="text-lg font-semibold text-gray-900">
-                          {resource.title}
-                        </h4>
-                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-                          Pending
-                        </span>
+            <div className="max-h-96 overflow-y-auto">
+              <div className="divide-y divide-gray-200">
+                {pendingResources.map((resource) => (
+                  <div key={resource._id} className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-medium text-gray-900">{resource.title}</h3>
+                        <p className="text-gray-600 mt-1">{resource.description}</p>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
+                          <span>Branch: {resource.branch}</span>
+                          <span>Subject: {resource.subject}</span>
+                          <span>Uploaded by: {resource.uploadedBy?.name}</span>
+                          <span>Type: {resource.fileType?.toUpperCase()}</span>
+                          <span>Date: {new Date(resource.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                      
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {resource.description}
-                      </p>
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                        <span>{resource.branch}</span>
-                        <span>{resource.uploadedBy?.name}</span>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-3">
-
-                        
-                        <button
-                          onClick={() => handleApprove(resource._id)}
-                          disabled={actionLoading[resource._id]}
-                          className="inline-flex items-center px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                        >
-                          <FiCheck className="w-4 h-4 mr-1" />
-                          Approve
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            const remark = prompt('Reason for rejection:');
-                            if (remark) handleReject(resource._id, remark);
-                          }}
-                          disabled={actionLoading[resource._id]}
-                          className="inline-flex items-center px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                        >
-                          <FiX className="w-4 h-4 mr-1" />
-                          Reject
-                        </button>
+                      <div className="flex flex-col space-y-2 ml-4">
+                        <div className="flex space-x-2">
+                          <a
+                            href={resource.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 text-center flex-1"
+                          >
+                            👁️ View
+                          </a>
+                          <a
+                            href={resource.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-green-600 text-white px-3 py-2 rounded-md text-sm hover:bg-green-700 text-center flex-1"
+                          >
+                            📄 Details
+                          </a>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleResourceAction(resource._id, 'approve')}
+                            className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700"
+                          >
+                            ✅ Approve
+                          </button>
+                          <button
+                            onClick={() => handleResourceAction(resource._id, 'reject', 'Not suitable')}
+                            className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
+                          >
+                            ❌ Reject
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+                {pendingResources.length === 0 && (
+                  <div className="p-6 text-center text-gray-500">
+                    No pending resources
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Announcements */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Announcements</h3>
           </div>
-          {announcements.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              No announcements yet
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {announcements.slice(0, 3).map((announcement) => (
-                <div key={announcement._id} className="p-6 flex justify-between items-start">
+
+        {/* Existing Announcements */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Existing Announcements</h2>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {announcements.map((announcement) => (
+              <div key={announcement._id} className="p-6">
+                <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-2">{announcement.title}</h4>
-                    <p className="text-gray-600 mb-2">{announcement.content}</p>
-                    <p className="text-xs text-gray-500">
-                      {formatDate(announcement.createdAt)}
+                    <h3 className="text-lg font-medium text-gray-900">{announcement.title}</h3>
+                    {announcement.content && (
+                      <p className="text-gray-600 mt-2">{announcement.content}</p>
+                    )}
+                    {announcement.fileUrl && (
+                      <div className="mt-2">
+                        <a
+                          href={announcement.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm inline-block mr-4"
+                        >
+                          📎 Download File
+                        </a>
+                        <a
+                          href={announcement.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:text-green-800 text-sm inline-block"
+                        >
+                          👁️ View Online
+                        </a>
+                      </div>
+                    )}
+                    {!announcement.content && announcement.fileUrl && (
+                      <p className="text-gray-500 text-sm mt-2 italic">File-only announcement</p>
+                    )}
+                    <p className="text-sm text-gray-500 mt-2">
+                      Created: {new Date(announcement.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDeleteAnnouncement(announcement._id)}
-                    className="text-red-600 hover:text-red-800 ml-4"
+                    onClick={() => deleteAnnouncement(announcement._id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 ml-4"
                   >
-                    <FiX className="w-4 h-4" />
+                    Delete
                   </button>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+            {announcements.length === 0 && (
+              <div className="p-6 text-center text-gray-500">
+                No announcements yet
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Modals */}
-        {showAnnouncementForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Create Announcement</h3>
-              <form onSubmit={handleCreateAnnouncement}>
-                <input
-                  type="text"
-                  placeholder="Title"
-                  value={announcementData.title}
-                  onChange={(e) => setAnnouncementData({...announcementData, title: e.target.value})}
-                  className="w-full p-2 border rounded mb-3"
-                  required
-                />
-                <textarea
-                  placeholder="Content"
-                  value={announcementData.content}
-                  onChange={(e) => setAnnouncementData({...announcementData, content: e.target.value})}
-                  className="w-full p-2 border rounded mb-3 h-24"
-                  required
-                />
-                <input
-                  type="file"
-                  onChange={(e) => setAnnouncementData({...announcementData, file: e.target.files[0]})}
-                  className="w-full p-2 border rounded mb-4"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
-                />
-                <div className="flex space-x-3">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Create
-                  </button>
-                  <button type="button" onClick={() => setShowAnnouncementForm(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showUploadForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Upload Resource</h3>
-              <form onSubmit={handleAdminUpload}>
-                <input
-                  type="text"
-                  placeholder="Title"
-                  value={uploadData.title}
-                  onChange={(e) => setUploadData({...uploadData, title: e.target.value})}
-                  className="w-full p-2 border rounded mb-3"
-                  required
-                />
-                <textarea
-                  placeholder="Description"
-                  value={uploadData.description}
-                  onChange={(e) => setUploadData({...uploadData, description: e.target.value})}
-                  className="w-full p-2 border rounded mb-3 h-20"
-                  required
-                />
-                <select
-                  value={uploadData.branch}
-                  onChange={(e) => setUploadData({...uploadData, branch: e.target.value})}
-                  className="w-full p-2 border rounded mb-3"
-                  required
-                >
-                  <option value="">Select Branch</option>
-                  <option value="CSE">Computer Science</option>
-                  <option value="ECE">Electronics</option>
-                  <option value="ME">Mechanical</option>
-                  <option value="EE">Electrical</option>
-                  <option value="CE">Civil</option>
-                  <option value="IT">Information Technology</option>
-                  <option value="Other">Other</option>
-                </select>
-                
-                <input
-                  type="file"
-                  onChange={(e) => setUploadData({...uploadData, file: e.target.files[0]})}
-                  className="w-full p-2 border rounded mb-4"
-                  accept=".pdf,.doc,.docx,.ppt,.pptx"
-                  required
-                />
-                <div className="flex space-x-3">
-                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                    Upload
-                  </button>
-                  <button type="button" onClick={() => setShowUploadForm(false)} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

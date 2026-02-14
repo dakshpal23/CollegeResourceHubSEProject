@@ -5,25 +5,25 @@ const announcementSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+    maxlength: 100
   },
   content: {
     type: String,
-    required: true,
+    maxlength: 1000,
+    default: ''
   },
-  fileUrl: {
-    type: String,
-  },
+  fileUrl: String,
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: true
   },
   isActive: {
     type: Boolean,
-    default: true,
-  },
+    default: true
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
 export default mongoose.model('Announcement', announcementSchema);
