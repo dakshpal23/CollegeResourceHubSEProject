@@ -76,7 +76,13 @@ jspm_packages/
 # Nuxt.js build / generate output
 .nuxt
 
+<<<<<<< HEAD
 # Gat
+=======
+# Gatsby files
+
+
+>>>>>>> 9958b11f93f3ad9aa27a6739fb8f0de8124022e2
 # Storybook build outputs
 .out
 .storybook-out
