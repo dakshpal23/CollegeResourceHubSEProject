@@ -36,7 +36,7 @@ const ResourceDetail = () => {
   const handleDownload = () => {
     try {
       const link = document.createElement('a');
-      link.href = resource.fileUrl;
+      link.href = resource.fileUrl.replace('/upload/', '/upload/fl_attachment/');
       link.download = resource.title;
       link.target = '_blank';
       document.body.appendChild(link);

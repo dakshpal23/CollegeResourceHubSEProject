@@ -281,24 +281,25 @@ const MyUploads = () => {
                     {/* Actions */}
                     <div className="ml-6 flex flex-col space-y-2">
                       {resource.status === 'approved' && (
-                        <Link
-                          to={`/resources/${resource._id}`}
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                        >
-                          <FiEye className="w-4 h-4 mr-1" />
-                          View
-                        </Link>
+                        <>
+                          <Link
+                            to={`/resources/${resource._id}`}
+                            className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                            <FiEye className="w-4 h-4 mr-1" />
+                            View Details
+                          </Link>
+                          <a
+                            href={resource.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-1 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors"
+                          >
+                            <FiFileText className="w-4 h-4 mr-1" />
+                            Download
+                          </a>
+                        </>
                       )}
-                      
-                      <a
-                        href={resource.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1 border border-primary-300 rounded-md text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors"
-                      >
-                        <FiFileText className="w-4 h-4 mr-1" />
-                        Preview
-                      </a>
                     </div>
                   </div>
                 </div>

@@ -18,8 +18,7 @@ const createAnnouncement = async (req, res) => {
         cloudinary.uploader.upload_stream(
           { 
             resource_type: 'auto', 
-            folder: 'announcements',
-            flags: 'attachment'
+            folder: 'announcements'
           },
           (error, result) => error ? reject(error) : resolve(result)
         ).end(file.buffer);

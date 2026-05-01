@@ -344,7 +344,7 @@ const AdminDashboard = () => {
                       <div className="flex flex-col space-y-2 ml-4">
                         <div className="flex space-x-2">
                           <a
-                            href={resource.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
+                            href={resource.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700 text-center flex-1"
@@ -352,12 +352,12 @@ const AdminDashboard = () => {
                             👁️ View
                           </a>
                           <a
-                            href={resource.fileUrl}
+                            href={resource.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-green-600 text-white px-3 py-2 rounded-md text-sm hover:bg-green-700 text-center flex-1"
                           >
-                            📄 Details
+                            📥 Download
                           </a>
                         </div>
                         <div className="flex space-x-2">

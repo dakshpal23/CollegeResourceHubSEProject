@@ -316,13 +316,13 @@ const Resources = () => {
                           Details
                         </Link>
                         <a
-                          href={resource.fileUrl}
+                          href={resource.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors"
                         >
                           <FiDownload className="w-4 h-4 mr-1" />
-                          View
+                          Download
                         </a>
                       </div>
                     </div>
