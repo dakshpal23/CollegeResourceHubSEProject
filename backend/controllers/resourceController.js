@@ -1,8 +1,16 @@
 import Resource from '../models/Resource.js';
 import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
+import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import uploadToStorage from '../utils/uploadToStorage.js';
+
+const uploadsRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'uploads'
+);
 
 /**
  * Upload a new resource (student/admin)
@@ -236,9 +244,22 @@ const deleteResource = async (req, res) => {
       return res.status(404).json({ message: 'Resource not found' });
     }
 
-    // Delete from Cloudinary
-    const publicId = resource.fileUrl.split('/').pop().split('.')[0];
-    await cloudinary.uploader.destroy(`college-resources/${publicId}`);
+    if (resource.fileUrl.includes('/uploads/')) {
+      const relativePath = decodeURIComponent(resource.fileUrl.split('/uploads/')[1]);
+      const localPath = path.resolve(uploadsRoot, relativePath);
+
+      if (localPath.startsWith(`${uploadsRoot}${path.sep}`)) {
+        await fs.unlink(localPath).catch(error => {
+          if (error.code !== 'ENOENT') {
+            throw error;
+          }
+        });
+      }
+    } else {
+      // Delete from Cloudinary
+      const publicId = resource.fileUrl.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(`college-resources/${publicId}`);
+    }
 
     // Delete from database
     await Resource.findByIdAndDelete(req.params.id);
