@@ -1,5 +1,6 @@
 import Announcement from '../models/Announcement.js';
 import cloudinary from '../config/cloudinary.js';
+import uploadToStorage from '../utils/uploadToStorage.js';
 
 /**
  * Create announcement (admin only)
@@ -37,19 +38,7 @@ const createAnnouncementWithFile = async (req, res) => {
     
     let fileUrl = null;
     if (file) {
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder: 'announcements',
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        ).end(file.buffer);
-      });
-      fileUrl = result.secure_url;
+      fileUrl = await uploadToStorage(file, 'announcements');
     }
     
     const announcement = await Announcement.create({

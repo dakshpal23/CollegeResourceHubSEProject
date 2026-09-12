@@ -2,6 +2,7 @@ import Resource from '../models/Resource.js';
 import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
 import path from 'path';
+import uploadToStorage from '../utils/uploadToStorage.js';
 
 /**
  * Upload a new resource (student/admin)
@@ -19,20 +20,8 @@ const uploadResource = async (req, res) => {
     // Get file extension for type determination
     const fileExtension = path.extname(file.originalname).toLowerCase().substring(1);
     
-    // Upload file to Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        {
-          resource_type: 'auto',
-          folder: 'college-resources',
-          public_id: `${Date.now()}-${file.originalname}`,
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(file.buffer);
-    });
+    // Upload file to Cloudinary when configured; otherwise store locally for dev
+    const uploadedUrl = await uploadToStorage(file, 'college-resources');
 
     // Admin uploads are auto-approved, student uploads need approval
     const status = req.user.role === 'admin' ? 'approved' : 'pending';
@@ -46,7 +35,7 @@ const uploadResource = async (req, res) => {
       description,
       branch,
       subject,
-      fileUrl: result.secure_url,
+      fileUrl: uploadedUrl,
       fileType: fileExtension,
       uploadedBy: req.user._id,
       status

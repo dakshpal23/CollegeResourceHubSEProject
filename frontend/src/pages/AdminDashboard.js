@@ -28,7 +28,7 @@ const AdminDashboard = () => {
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [announcementData, setAnnouncementData] = useState({ title: '', content: '', file: null });
-  const [uploadData, setUploadData] = useState({ title: '', description: '', branch: '', file: null });
+  const [uploadData, setUploadData] = useState({ title: '', description: '', branch: '', subject: '', file: null });
 
   /**
    * Fetch dashboard data
@@ -86,12 +86,13 @@ const AdminDashboard = () => {
       formData.append('title', uploadData.title);
       formData.append('description', uploadData.description);
       formData.append('branch', uploadData.branch);
+      formData.append('subject', uploadData.subject);
       formData.append('file', uploadData.file);
 
       await resourceAPI.adminUpload(formData);
       toast.success('Resource uploaded successfully!');
       setShowUploadForm(false);
-      setUploadData({ title: '', description: '', branch: '',  file: null });
+      setUploadData({ title: '', description: '', branch: '', subject: '', file: null });
       fetchDashboardData();
     } catch (error) {
       handleApiError(error);
@@ -153,11 +154,6 @@ const AdminDashboard = () => {
    * Handle resource rejection
    */
   const handleReject = async (resourceId, remark) => {
-    if (!remark.trim()) {
-      toast.error('Please provide a reason for rejection');
-      return;
-    }
-
     try {
       setActionLoading(prev => ({ ...prev, [resourceId]: 'rejecting' }));
       await resourceAPI.reject(resourceId, remark);
@@ -351,6 +347,14 @@ const AdminDashboard = () => {
                       {/* Action Buttons */}
                       <div className="flex items-center space-x-3">
 
+                        <button
+                          onClick={() => window.open(resource.fileUrl, '_blank', 'noopener,noreferrer')}
+                          className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                          title="Preview uploaded resource"
+                        >
+                          <FiEye className="w-4 h-4 mr-1" />
+                          Preview
+                        </button>
                         
                         <button
                           onClick={() => handleApprove(resource._id)}
@@ -362,10 +366,7 @@ const AdminDashboard = () => {
                         </button>
                         
                         <button
-                          onClick={() => {
-                            const remark = prompt('Reason for rejection:');
-                            if (remark) handleReject(resource._id, remark);
-                          }}
+                          onClick={() => handleReject(resource._id, '')}
                           disabled={actionLoading[resource._id]}
                           className="inline-flex items-center px-3 py-1 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
                         >
@@ -488,6 +489,15 @@ const AdminDashboard = () => {
                   <option value="IT">Information Technology</option>
                   <option value="Other">Other</option>
                 </select>
+
+                <input
+                  type="text"
+                  placeholder="Subject"
+                  value={uploadData.subject}
+                  onChange={(e) => setUploadData({...uploadData, subject: e.target.value})}
+                  className="w-full p-2 border rounded mb-3"
+                  required
+                />
                 
                 <input
                   type="file"
