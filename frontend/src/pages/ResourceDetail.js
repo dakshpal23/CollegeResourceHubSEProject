@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { resourceAPI, handleApiError } from '../services/api';
 import { 
   FiDownload, 
   FiArrowLeft, 
   FiCalendar,
-  FiUser,
-  FiFileText
+  FiUser
 } from 'react-icons/fi';
+import FileTypeIcon from '../components/common/FileTypeIcon';
+import formatDate from '../utils/formatDate';
 import toast from 'react-hot-toast';
 
 const ResourceDetail = () => {
@@ -47,30 +48,6 @@ const ResourceDetail = () => {
     } catch (error) {
       toast.error('Download failed');
     }
-  };
-
-  const getFileIcon = (fileType) => {
-    const iconClass = "w-8 h-8";
-    switch (fileType?.toLowerCase()) {
-      case 'pdf':
-        return <FiFileText className={`${iconClass} text-red-500`} />;
-      case 'doc':
-      case 'docx':
-        return <FiFileText className={`${iconClass} text-blue-500`} />;
-      case 'ppt':
-      case 'pptx':
-        return <FiFileText className={`${iconClass} text-orange-500`} />;
-      default:
-        return <FiFileText className={`${iconClass} text-gray-500`} />;
-    }
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   if (loading) {
@@ -115,7 +92,7 @@ const ResourceDetail = () => {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
-                  {getFileIcon(resource.fileType)}
+                  <FileTypeIcon fileType={resource.fileType} size="w-8 h-8" />
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900">{resource.title}</h1>
                     <div className="flex items-center space-x-4 mt-2">
@@ -155,7 +132,7 @@ const ResourceDetail = () => {
                 <FiCalendar className="w-5 h-5 text-gray-400" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Upload Date</p>
-                  <p className="text-sm text-gray-600">{formatDate(resource.createdAt)}</p>
+                  <p className="text-sm text-gray-600">{formatDate(resource.createdAt, false, 'long')}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -178,7 +155,7 @@ const ResourceDetail = () => {
               ) : (
                 <div className="flex items-center justify-center h-64 bg-white rounded-lg border-2 border-dashed border-gray-300">
                   <div className="text-center">
-                    {getFileIcon(resource.fileType)}
+                    <FileTypeIcon fileType={resource.fileType} size="w-8 h-8" />
                     <p className="mt-2 text-sm text-gray-600">
                       {resource.fileType?.toUpperCase()} File
                     </p>

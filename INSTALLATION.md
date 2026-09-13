@@ -121,8 +121,13 @@ college-resource-hub/
 │   └── server.js          # Entry point
 ├── frontend/               # React application
 │   ├── src/
-│   │   ├── components/    # Reusable components
+│   │   ├── components/    # Reusable UI components
+│   │   │   ├── admin/     # Admin dashboard sections and forms
+│   │   │   ├── common/    # Shared icons and status components
+│   │   │   ├── resources/ # Resource filters, cards, and pagination
+│   │   │   └── Layout/    # Navbar and footer
 │   │   ├── pages/         # Page components
+│   │   ├── utils/          # Shared frontend formatting helpers
 │   │   ├── context/       # React context
 │   │   ├── services/      # API services
 │   │   └── App.js         # Main app component

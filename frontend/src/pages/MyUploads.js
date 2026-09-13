@@ -11,6 +11,9 @@ import {
   FiFileText,
   FiCalendar
 } from 'react-icons/fi';
+import FileTypeIcon from '../components/common/FileTypeIcon';
+import StatusBadge from '../components/common/StatusBadge';
+import formatDate from '../utils/formatDate';
 
 /**
  * My Uploads page for students to view their submitted resources
@@ -19,39 +22,6 @@ const MyUploads = () => {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
-
-  /**
-   * Status badge component
-   */
-  const StatusBadge = ({ status }) => {
-    const statusConfig = {
-      pending: {
-        icon: FiClock,
-        text: 'Pending Review',
-        className: 'bg-yellow-100 text-yellow-800'
-      },
-      approved: {
-        icon: FiCheck,
-        text: 'Approved',
-        className: 'bg-green-100 text-green-800'
-      },
-      rejected: {
-        icon: FiX,
-        text: 'Rejected',
-        className: 'bg-red-100 text-red-800'
-      }
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    const Icon = config.icon;
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
-        <Icon className="w-3 h-3 mr-1" />
-        {config.text}
-      </span>
-    );
-  };
 
   /**
    * Fetch user's uploads
@@ -72,38 +42,6 @@ const MyUploads = () => {
   useEffect(() => {
     fetchMyUploads();
   }, []);
-
-  /**
-   * Format date
-   */
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  /**
-   * Get file type icon
-   */
-  const getFileIcon = (fileType) => {
-    const iconClass = "w-5 h-5";
-    switch (fileType?.toLowerCase()) {
-      case 'pdf':
-        return <FiFileText className={`${iconClass} text-red-500`} />;
-      case 'doc':
-      case 'docx':
-        return <FiFileText className={`${iconClass} text-blue-500`} />;
-      case 'ppt':
-      case 'pptx':
-        return <FiFileText className={`${iconClass} text-orange-500`} />;
-      default:
-        return <FiFileText className={`${iconClass} text-gray-500`} />;
-    }
-  };
 
   if (loading) {
     return (
@@ -230,7 +168,7 @@ const MyUploads = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        {getFileIcon(resource.fileType)}
+                        <FileTypeIcon fileType={resource.fileType} />
                         <h4 className="text-lg font-semibold text-gray-900">
                           {resource.title}
                         </h4>
