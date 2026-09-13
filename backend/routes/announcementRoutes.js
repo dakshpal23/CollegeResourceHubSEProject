@@ -1,12 +1,7 @@
 import express from 'express';
-import {
-  createAnnouncement,
-  createAnnouncementWithFile,
-  getAnnouncements,
-  deleteAnnouncement,
-} from '../controllers/announcementController.js';
+import { createAnnouncement, getAnnouncements, deleteAnnouncement } from '../controllers/announcementController.js';
 import { protect, admin } from '../middleware/auth.js';
-import upload from '../middleware/upload.js';
+import { uploadSingle } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -14,8 +9,7 @@ const router = express.Router();
 router.get('/', getAnnouncements);
 
 // Admin only routes
-router.post('/', protect, admin, createAnnouncement);
-router.post('/with-file', protect, admin, upload.single('file'), createAnnouncementWithFile);
+router.post('/', protect, admin, uploadSingle('file'), createAnnouncement);
 router.delete('/:id', protect, admin, deleteAnnouncement);
 
 export default router;

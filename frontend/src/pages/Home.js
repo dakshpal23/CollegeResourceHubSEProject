@@ -143,7 +143,29 @@ const Home = () => {
                 {announcements.slice(0, 2).map((announcement) => (
                   <div key={announcement._id} className="border-l-4 border-blue-500 pl-4">
                     <h3 className="font-semibold text-gray-900">{announcement.title}</h3>
-                    <p className="text-gray-600 text-sm">{announcement.content}</p>
+                    {announcement.content && (
+                      <p className="text-gray-600 text-sm">{announcement.content}</p>
+                    )}
+                    {announcement.fileUrl && (
+                      <div className="mt-1">
+                        <a
+                          href={announcement.fileUrl.replace('/upload/', '/upload/fl_attachment/')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-xs inline-block mr-3"
+                        >
+                          📎 Download
+                        </a>
+                        <a
+                          href={announcement.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:text-green-800 text-xs inline-block"
+                        >
+                          👁️ View
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
